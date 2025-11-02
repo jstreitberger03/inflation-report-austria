@@ -123,7 +123,7 @@ def plot_inflation_comparison(df, output_dir='output'):
                   y='Inflationsrate (%)',
                   color='Region',
                   linetype='',
-                  caption='Quelle: Eurostat (2025). HCPI - Harmonisierter Verbraucherpreisindex. Schattierung: 95%-Konfidenzintervall. Kritische Ereignisse markiert.')
+                  caption='Quelle: Eurostat (2025). HICP - Harmonisierter Verbraucherpreisindex. Schattierung: 95%-Konfidenzintervall. Kritische Ereignisse markiert.')
             + theme(
                 plot_title=element_text(size=14, face="bold", margin={'b': 15}),
                 plot_caption=element_text(size=9, hjust=0, margin={'t': 12}, color='#666666'),
@@ -188,7 +188,7 @@ def plot_difference(comparison_df, output_dir='output'):
                   subtitle='Positive Werte = Höhere Inflation in Österreich',
                   x='',
                   y='Differenz (Prozentpunkte)',
-                  caption='Quelle: Eurostat (2025). HCPI - Harmonisierter Verbraucherpreisindex.')
+                  caption='Quelle: Eurostat (2025). HICP - Harmonisierter Verbraucherpreisindex.')
             + theme(
                 plot_title=element_text(size=13, face="bold", margin={'b': 5}),
                 plot_subtitle=element_text(size=10, margin={'b': 10}),
@@ -258,7 +258,7 @@ def plot_statistics_comparison(stats, output_dir='output'):
             + labs(title='Deskriptive Statistik der Inflationsraten (seit 2020)',
                   x='',
                   y='Inflationsrate (%)',
-                  caption='Quelle: Eurostat (2025). HCPI - Harmonisierter Verbraucherpreisindex.')
+                  caption='Quelle: Eurostat (2025). HICP - Harmonisierter Verbraucherpreisindex.')
             + theme(
                 plot_title=element_text(size=13, face="bold", margin={'b': 10}),
                 plot_caption=element_text(size=8, hjust=0, margin={'t': 10}),
@@ -482,7 +482,7 @@ def plot_eu_heatmap(output_dir='output'):
                       x='Quartal',
                       y='Land',
                       fill='Inflation (%)',
-                      caption='Quelle: Eurostat (2025). HCPI - Harmonisierter Verbraucherpreisindex.')
+                      caption='Quelle: Eurostat (2025). HICP - Harmonisierter Verbraucherpreisindex.')
                 + theme(
                     plot_title=element_text(size=12, face="bold", margin={'b': 10}),
                     plot_caption=element_text(size=8, hjust=0, margin={'t': 10}),
@@ -606,7 +606,7 @@ def plot_historical_comparison(output_dir='output'):
                       x='',
                       y='Inflationsrate (%)',
                       color='Region',
-                      caption='Quelle: Eurostat (2025). HCPI - Harmonisierter Verbraucherpreisindex. Kritische Ereignisse: Finanzkrise 2008, COVID-19, Ukraine-Krieg.')
+                      caption='Quelle: Eurostat (2025). HICP - Harmonisierter Verbraucherpreisindex. Kritische Ereignisse: Finanzkrise 2008, COVID-19, Ukraine-Krieg.')
                 + theme(
                     plot_title=element_text(size=14, face="bold", margin={'b': 15}),
                     plot_caption=element_text(size=9, hjust=0, margin={'t': 12}, color='#666666'),

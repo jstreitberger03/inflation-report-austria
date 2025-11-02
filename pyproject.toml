@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "inflation-report-austria"
+version = "2.0.0"
+authors = [
+  { name="Julian Streitberger", email="author@example.com" },
+]
+description = "A professional tool for analyzing and visualizing inflation data for Austria in comparison with other European countries."
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "pandas>=2.0",
+    "statsmodels>=0.14",
+    "scikit-learn>=1.0",
+    "plotnine>=0.12",
+    "eurostat>=1.0",
+    "numpy>=1.20",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/jstreitberger03/inflation-report-austria"
+"Bug Tracker" = "https://github.com/jstreitberger03/inflation-report-austria/issues"

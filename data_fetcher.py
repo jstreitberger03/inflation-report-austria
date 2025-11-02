@@ -296,45 +296,90 @@ def fetch_ecb_interest_rates():
         return pd.concat([df_main, df_deposit], ignore_index=True)
 
 
-def forecast_inflation(df, months_ahead=12):
+def forecast_inflation(df, months_ahead=12, method='holt_winters'):
     """
-    Forecast inflation using recent trend with confidence intervals.
+    Forecast inflation using time series models with confidence intervals.
+    
+    Methodology:
+    - Primary method: Holt-Winters Exponential Smoothing for better trend/seasonality capture
+    - Fallback method: Linear Regression on recent 12-month trend
+    - Confidence intervals: 95% prediction intervals based on model residuals
+    - Training data: Last 24 months (or all available data if less)
     
     Args:
         df (pd.DataFrame): Historical inflation data
-        months_ahead (int): Number of months to forecast
+        months_ahead (int): Number of months to forecast (default: 12)
+        method (str): 'holt_winters' or 'linear' (default: 'holt_winters')
         
     Returns:
-        pd.DataFrame: Forecast data with confidence bands
+        pd.DataFrame: Forecast data with confidence bands and methodology metadata
     """
+    from statsmodels.tsa.holtwinters import ExponentialSmoothing
+    
     forecasts = []
 
     for geo in df['geo'].unique():
         region_data = df[df['geo'] == geo].sort_values('date').copy()
         country_name = region_data['country'].iloc[0]
         
-        # Use last 12 months for trend
-        recent_data = region_data.tail(12).copy()
+        # Use last 24 months for better pattern recognition (or all if less available)
+        training_window = min(24, len(region_data))
+        training_data = region_data.tail(training_window).copy()
         
-        # Convert dates to discrete month index (months since first date)
-        min_date = recent_data['date'].min()
-        recent_data['months'] = (
-            (recent_data['date'].dt.year - min_date.year) * 12
-            + (recent_data['date'].dt.month - min_date.month)
-        )
+        try:
+            if method == 'holt_winters' and training_window >= 12:
+                # Holt-Winters Exponential Smoothing with trend (additive)
+                # No seasonality component to avoid overfitting on short series
+                model = ExponentialSmoothing(
+                    training_data['inflation_rate'].values,
+                    trend='add',
+                    seasonal=None,
+                    damped_trend=True  # Damped trend for more conservative forecasts
+                )
+                fitted_model = model.fit(optimized=True, use_brute=False)
+                
+                # Generate forecast
+                forecast_values = fitted_model.forecast(steps=months_ahead)
+                
+                # Calculate residuals for confidence intervals
+                fitted_values = fitted_model.fittedvalues
+                residuals = training_data['inflation_rate'].values - fitted_values
+                std_error = np.std(residuals)
+                method_used = 'Holt-Winters (Exponential Smoothing mit Trend)'
+                
+            else:
+                # Fallback: Linear regression
+                raise ValueError("Using linear regression fallback")
+                
+        except:
+            # Fallback to linear regression if Holt-Winters fails
+            recent_data = region_data.tail(12).copy()
+            
+            # Convert dates to discrete month index
+            min_date = recent_data['date'].min()
+            recent_data['months'] = (
+                (recent_data['date'].dt.year - min_date.year) * 12
+                + (recent_data['date'].dt.month - min_date.month)
+            )
+            
+            # Linear regression on recent trend
+            X = recent_data['months'].values.reshape(-1, 1)
+            y = recent_data['inflation_rate'].values
+            
+            model = LinearRegression()
+            model.fit(X, y)
+            
+            # Predict future values
+            min_date_base = recent_data['date'].min()
+            future_months_temp = np.arange(12, 12 + months_ahead).reshape(-1, 1)
+            forecast_values = model.predict(future_months_temp)
+            
+            # Calculate residuals
+            predictions = model.predict(X)
+            residuals = y - predictions
+            std_error = np.std(residuals)
+            method_used = 'Lineare Regression (12-Monats-Trend)'
         
-        # Simple linear regression on recent trend
-        X = recent_data['months'].values.reshape(-1, 1)
-        y = recent_data['inflation_rate'].values
-        
-        model = LinearRegression()
-        model.fit(X, y)
-        
-        # Calculate residual standard deviation for confidence bands
-        predictions = model.predict(X)
-        residuals = y - predictions
-        std_error = np.std(residuals)
-
         # Generate future dates starting from the month immediately after the last actual data
         last_date = region_data['date'].max()
         # Calculate the first forecast month: month after last_date
@@ -345,26 +390,25 @@ def forecast_inflation(df, months_ahead=12):
         
         # Generate sequence of months
         future_dates = pd.date_range(start=next_month, periods=months_ahead, freq='MS').tolist()
-
-        # Predict future values
-        future_months = np.array([
-            (d.year - min_date.year) * 12 + (d.month - min_date.month)
-            for d in future_dates
-        ]).reshape(-1, 1)
-        future_values = model.predict(future_months)
         
-        # Add confidence bands (95% confidence = ~1.96 * std_error)
-        # Increase uncertainty over time
-        for i, (date, value) in enumerate(zip(future_dates, future_values)):
-            uncertainty = std_error * 1.96 * (1 + i / months_ahead)  # Growing uncertainty
+        # Add confidence bands (95% confidence intervals)
+        # Increase uncertainty over time (forecast horizon effect)
+        for i, (date, value) in enumerate(zip(future_dates, forecast_values)):
+            # Expanding confidence intervals: base + horizon adjustment
+            horizon_factor = np.sqrt(1 + i / 6)  # Increases gradually with forecast distance
+            uncertainty = std_error * 1.96 * horizon_factor
+            
             forecasts.append({
                 'date': date,
                 'geo': geo,
                 'country': country_name,
-                'inflation_rate': value,
-                'lower_bound': max(0, value - uncertainty),  # Can't be negative
-                'upper_bound': value + uncertainty,
-                'is_forecast': True
+                'inflation_rate': float(value),
+                'lower_bound': max(0, float(value - uncertainty)),  # Inflation can't be negative in most cases
+                'upper_bound': float(value + uncertainty),
+                'is_forecast': True,
+                'method': method_used,
+                'std_error': float(std_error),
+                'training_months': training_window
             })
     
     return pd.DataFrame(forecasts)

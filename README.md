@@ -1,183 +1,129 @@
-# Inflation Report Austria
+# Inflationsbericht Österreich
 
-Ein Python-basiertes Tool zur Analyse und Vergleich der Inflationsraten zwischen Österreich, Deutschland und der Eurozone. Dieses Projekt ruft Echtzeit-Daten von Eurostat ab und generiert umfassende Berichte mit professionellen Visualisierungen.
+Ein Werkzeug zur Analyse und Visualisierung von Inflationsdaten für Österreich im Vergleich zu Deutschland und dem Euroraum.
 
-## Features
+## Übersicht
 
-- **Echtzeit-Daten**: Ruft die neuesten HICP (Harmonisierter Verbraucherpreisindex) Inflationsdaten von Eurostat ab
-- **Umfassende Analyse**: 
-  - Statistische Analyse (Durchschnitt, Median, Min, Max, Standardabweichung)
-  - Jahr-für-Jahr Vergleich zwischen Österreich, Deutschland und Eurozone
-  - Identifikation von Trends und Extremwerten
-  - Historische Analyse seit 2002
-  
-- **12-Monats-Prognose**: 
-  - Machine Learning basierte Vorhersage (Linear Regression)
-  - 95% Konfidenzintervalle für Unsicherheitsabschätzung
-  - Integration der Prognose in die Hauptvisualisierung
+Dieses Projekt bietet einen automatisierten Arbeitsablauf zum Abrufen, Analysieren und Visualisieren von Inflationsdaten von Eurostat. Es generiert einen umfassenden Bericht im HTML- und Textformat, einschließlich Zeitreihenprognosen. Das Hauptziel ist es, eine standardisierte und reproduzierbare Analyse von Inflationstrends für die Wirtschaftsforschung und Berichterstattung bereitzustellen.
 
-- **EZB-Leitzinsen**:
-  - Hauptrefinanzierungssatz (Main Refinancing Rate)
-  - Einlagefazilität (Deposit Facility Rate)
-  - Historische Daten seit 2000
+## Funktionen
 
-- **Professionelle Visualisierungen** (plotnine/ggplot2-Stil):
-  - Inflationsvergleich mit integrierter 6-Monats-Prognose
-  - EZB-Leitzinsen-Entwicklung
-  - Inflationsdifferenz zwischen Ländern
-  - Statistische Vergleichscharts
-  - Langfristige historische Entwicklung seit 2002 mit kritischen Events (Finanzkrise, COVID-19, Ukraine-Krieg)
-  - EU-weite Heatmap mit Ländernamen
-  - Alle Plots mit Punktmarkern, professioneller Farbpalette und gestrichelten Gridlines
+### Datenanalyse
+- **Datenquelle**: Eurostat HICP (Harmonisierter Verbraucherpreisindex, `prc_hicp_manr`).
+- **Geografischer Geltungsbereich**: Österreich, Deutschland und der Euroraum (EA20).
+- **Frequenz**: Monatliche Jahresveränderungsraten der Inflation.
+- **Zeitraum**: Von 2002 bis zu den aktuellsten verfügbaren Daten.
+- **Datenaktualisierung**: Ruft bei jeder Ausführung die neuesten Daten direkt von der Eurostat-API ab.
 
-- **Interaktiver HTML-Report**: 
-  - Modern gestalteter, responsiver HTML-Bericht
-  - Eingebettete Visualisierungen
-  - Übersichtliche Statistik-Karten
-  - Prognose-Tabellen
-  - Druckoptimiert
+### Prognose
+- **Primärmodell**: Holt-Winters Exponentielle Glättung mit gedämpftem Trend für Zeitreihenprognosen.
+- **Fallback-Modell**: Lineare Regression wird verwendet, wenn der Datensatz für das Holt-Winters-Modell nicht ausreicht.
+- **Trainingszeitraum**: Die letzten 24 Monate der Daten werden für das Modelltraining verwendet.
+- **Konfidenzintervalle**: 95%-Prädiktionsintervalle werden berechnet und an den Prognosehorizont angepasst.
 
-- **Text-Report**: Klassischer Textbericht für schnelle Übersicht
+### Statistische Analyse
+- Deskriptive Statistiken (Mittelwert, Median, Standardabweichung).
+- Identifizierung von Trends und Extremwerten.
+- Vergleichende Analyse zwischen den ausgewählten Regionen.
+- Berechnung von Inflationsdifferenzen.
 
-## Requirements
+### Visualisierungen
+Das Tool generiert die folgenden SVG-Diagramme:
+1.  `inflation_comparison.svg`: Vergleichende Darstellung der Inflationsraten mit Prognosen.
+2.  `ecb_interest_rates.svg`: EZB-Leitzinsen seit 2000.
+3.  `inflation_difference.svg`: Inflationsdifferenz zwischen Österreich und dem Euroraum.
+4.  `statistics_comparison.svg`: Vergleichende Visualisierung der wichtigsten statistischen Kennzahlen.
+5.  `historical_comparison.svg`: Langfristige Inflationsentwicklung seit 2002 mit Markierungen für wichtige wirtschaftliche Ereignisse.
+6.  `eu_inflation_heatmap.svg`: Eine Heatmap der Inflationsraten in der Europäischen Union.
 
-- Python 3.8 oder höher
-- Abhängigkeiten in `requirements.txt`
+### Berichterstattung
+- **HTML-Bericht**: Ein detaillierter Bericht mit einer Zusammenfassung für Entscheidungsträger, Methodik, allen Visualisierungen und statistischen Tabellen.
+- **Text-Bericht**: Eine reine Textzusammenfassung der wichtigsten Ergebnisse.
 
-## Installation
+## Erste Schritte
 
-1. Repository klonen:
-```bash
-git clone https://github.com/jstreitberger03/inflation-report-austria.git
-cd inflation-report-austria
-```
+### Voraussetzungen
+- Python 3.8 oder höher.
 
-2. Virtuelle Umgebung erstellen (empfohlen):
-```bash
-python -m venv .venv
-.venv\Scripts\activate  # Windows
-source .venv/bin/activate  # macOS/Linux
-```
+### Installation
 
-3. Abhängigkeiten installieren:
-```bash
-pip install -r requirements.txt
-```
+1.  **Repository klonen**:
+    ```bash
+    git clone https://github.com/jstreitberger03/inflation-report-austria.git
+    cd inflation-report-austria
+    ```
 
-## Verwendung
+2.  **Virtuelle Umgebung erstellen und aktivieren** (empfohlen):
+    - Windows:
+      ```bash
+      python -m venv .venv
+      .venv\Scripts\activate
+      ```
+    - macOS/Linux:
+      ```bash
+      python -m venv .venv
+      source .venv/bin/activate
+      ```
 
-Führe das Hauptskript aus, um den kompletten Inflationsbericht zu generieren:
+3.  **Abhängigkeiten installieren**:
+    ```bash
+    pip install -r requirements.txt
+    ```
 
+### Verwendung
+
+Um den vollständigen Bericht zu erstellen, führen Sie das Hauptskript aus:
 ```bash
 python main.py
 ```
-
-## Output
-
-Das Skript generiert folgende Dateien im `output/` Verzeichnis:
-
-### Visualisierungen (SVG):
-1. **inflation_comparison.svg** - Inflationsvergleich mit integrierter Prognose bis März 2026 und Konfidenzintervallen
-2. **ecb_interest_rates.svg** - EZB-Leitzinsen (Hauptrefinanzierungssatz und Einlagefazilität)
-3. **inflation_difference.svg** - Balkendiagramm der jährlichen Differenzen
-4. **statistics_comparison.svg** - Statistische Kennzahlen im Vergleich
-5. **historical_comparison.svg** - Langfristige Entwicklung seit 2002 mit markierten kritischen Events
-6. **eu_inflation_heatmap.svg** - EU-weite Heatmap mit Ländernamen (Quartalsdurchschnitt)
-
-### Berichte:
-7. **inflation_report.html** - Interaktiver, modern gestalteter HTML-Bericht mit allen Visualisierungen und Analysen
-8. **inflation_report.txt** - Klassischer Textbericht für schnelle Übersicht
-
-## Technologie-Stack
-
-- **plotnine** - ggplot2-ähnliche Syntax für professionelle statische Visualisierungen
-- **pandas** - Datenmanipulation und -analyse
-- **scikit-learn** - Machine Learning für Inflationsprognosen
-- **eurostat** - API-Zugriff auf offizielle EU-Statistiken
-- **numpy** - Numerische Berechnungen
-
-### Warum plotnine statt plotly?
-
-**plotnine** eignet sich hervorragend für:
-- Statische, publikationsreife Grafiken
-- Konsistente, professionelle Ästhetik
-- Einfache Integration in Berichte und Papers
-- ggplot2 Grammar of Graphics
-
-**plotly** wäre besser für:
-- Interaktive Dashboards
-- Echtzeit-Updates
-- User-Interaktion (Zoom, Hover, etc.)
-
-Für diesen Anwendungsfall (statischer Report) ist plotnine die optimale Wahl.
-
-## Datenquelle
-
-Dieses Projekt nutzt die Eurostat-API für offizielle Inflationsdaten:
-- **Dataset**: `prc_hicp_manr` (HCPI - monatliche Änderungsraten)
-- **Regionen**: Österreich (AT), Deutschland (DE), Eurozone (EA20)
-- **Zeitraum**: 2002 - heute (historisch), 2020 - heute (Hauptvisualisierungen)
-- **EZB-Zinsen**: `irt_st_m` mit synthetischem Fallback
+Die Ausgabedateien werden im Verzeichnis `output/` gespeichert.
 
 ## Projektstruktur
 
 ```
 inflation-report-austria/
-├── main.py                      # Hauptskript für die Analyse
-├── data_fetcher.py              # Modul zum Abrufen von Eurostat-Daten und Prognose
-├── analysis.py                  # Statistische Analysefunktionen
-├── visualization.py             # Generierung aller Visualisierungen (plotnine)
-├── report_generator.py          # Textbericht-Generierung
-├── html_report_generator.py     # Interaktiver HTML-Bericht
-├── requirements.txt             # Python-Abhängigkeiten
-├── README.md                    # Diese Datei
-└── output/                      # Generierte Berichte (wird beim ersten Lauf erstellt)
-    ├── *.svg                    # Alle Visualisierungen
-    ├── inflation_report.html    # HTML-Bericht
-    └── inflation_report.txt     # Text-Bericht
+│
+├── main.py                  # Hauptskript zur Orchestrierung des Arbeitsablaufs
+├── data_fetcher.py          # Datenabruf von Eurostat und Prognoseerstellung
+├── analysis.py              # Statistische Analysefunktionen
+├── visualization.py         # Diagrammerstellung mit plotnine
+├── report_generator.py      # Erstellung des Textberichts
+├── html_report_generator.py # Erstellung des HTML-Berichts
+├── pyproject.toml           # Projektmetadaten und Build-Konfiguration
+├── requirements.txt         # Python-Paketabhängigkeiten
+├── README.md                # Projektdokumentation
+│
+└── output/                  # Generierte Berichte und Visualisierungen
+    ├── *.svg
+    ├── inflation_report.html
+    └── inflation_report.txt
 ```
 
-## Features im Detail
+## Methodik
 
-### Inflationsprognose
-- Verwendet **Linear Regression** auf den letzten 12 Monaten
-- Berechnet **95% Konfidenzintervalle**
-- Unsicherheit wächst mit zunehmendem Prognosehorizont
-- In Hauptvisualisierung integriert (gestrichelte Linie mit Schattierung)
+### Datenquelle
+- **Anbieter**: Eurostat
+- **Datensatz**: `prc_hicp_manr` (HVPI - monatliche Daten, jährliche Veränderungsrate)
+- **Regionen**: Österreich (AT), Deutschland (DE), Euroraum (EA20)
 
-### Kritische Events
-Die historische Visualisierung markiert wichtige wirtschaftliche Ereignisse:
-- **Finanzkrise 2008** (Lehman Brothers, 15. September 2008)
-- **COVID-19 Pandemie** (WHO-Erklärung, 11. März 2020)
-- **Ukraine-Krieg** (Invasionsbeginn, 24. Februar 2022)
-- **Liberation Day** (Trump-Zölle, 20. Januar 2025)
+### Prognosemodell
+Das primäre Prognosemodell ist die **Holt-Winters Exponentielle Glättung** mit einem additiven, gedämpften Trend. Diese Methode eignet sich gut für nicht-saisonale Zeitreihen mit einem Trend. Wenn die Zeitreihe für dieses Modell zu kurz ist, wird als Fallback eine einfache **lineare Regression** über die letzten 12 Monate verwendet.
 
-### Visualisierungs-Stil
-- **Farbpalette**: Professionell (#2E86AB, #A23B72, #F18F01)
-- **Gridlines**: Gestrichelt (dotted) für bessere Lesbarkeit
-- **Y-Achse**: 1.0% Schritte mit dichter Beschriftung
-- **X-Achse**: 3-Monats-Intervalle mit deutschen Monatsnamen
-- **Punktmarker**: Alle historischen Datenpunkte sichtbar
-- **Hintergrund**: Helles Grau (#FAFAFA) für sanften Kontrast
+- **Trainingsdaten**: Das Modell wird auf den Daten der letzten 24 Monate trainiert, um sich an aktuelle Trends anzupassen.
+- **Konfidenzintervalle**: 95%-Prädiktionsintervalle werden auf Basis der Standardabweichung der Modellresiduen berechnet, mit einer Anpassung für den Prognosehorizont.
 
-## Beispiel-Output
+## Technologie-Stack
 
-Die Analyse liefert Einblicke wie:
-- Aktuelle Inflationsraten für alle Regionen
-- Historische Trends und Muster
-- Jahre mit höchster/niedrigster Inflation
-- Durchschnittliche Differenzen zwischen Regionen
-- Kumulative Inflation über den Analysezeitraum
-- Prognose bis März 2026 mit Unsicherheitsintervallen
+| Komponente         | Technologie   |
+|--------------------|---------------|
+| **Kern**           | Python 3.8+   |
+| **Datenverarbeitung**| pandas        |
+| **Statistik**      | statsmodels   |
+| **ML-Fallback**    | scikit-learn  |
+| **Visualisierung** | plotnine      |
+| **API-Client**     | eurostat      |
+| **Numerik**        | numpy         |
 
 ## Lizenz
 
-Dieses Projekt ist Open Source und steht für Bildungs- und Analysezwecke zur Verfügung.
-
-## Mitwirken
-
-Beiträge sind willkommen! Öffnen Sie gerne Issues oder reichen Sie Pull Requests ein.
-
-## Autor
-Julian Streitberger
-Erstellt zur Analyse von Inflationstrends in Österreich im Vergleich zur Eurozone.
+Dieses Projekt ist unter der MIT-Lizenz lizenziert. Weitere Informationen finden Sie in der `LICENSE`-Datei.

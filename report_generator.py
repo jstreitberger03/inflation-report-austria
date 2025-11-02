@@ -6,139 +6,139 @@ from datetime import datetime
 
 def generate_text_report(df, stats, comparison, trends, output_dir='output'):
     """
-    Generate a comprehensive text report of the inflation analysis.
+    Erstellt einen umfassenden Textbericht der Inflationsanalyse.
     
     Args:
-        df (pd.DataFrame): Processed inflation data
-        stats (dict): Statistics dictionary
-        comparison (pd.DataFrame): Month-by-month comparison
-        trends (dict): Trends and extremes data
-        output_dir (str): Directory to save the report
+        df (pd.DataFrame): Verarbeitete Inflationsdaten.
+        stats (dict): Wörterbuch mit Statistiken.
+        comparison (pd.DataFrame): Monatlicher Vergleich.
+        trends (dict): Daten zu Trends und Extremwerten.
+        output_dir (str): Verzeichnis zum Speichern des Berichts.
         
     Returns:
-        str: Path to the saved report
+        str: Pfad zum gespeicherten Bericht.
     """
     report_lines = []
     
-    # Header
+    # Kopfzeile
     report_lines.append("=" * 80)
-    report_lines.append("INFLATION REPORT: AUSTRIA VS EURO ZONE")
+    report_lines.append("INFLATIONSBERICHT: ÖSTERREICH IM EUROPÄISCHEN VERGLEICH")
     report_lines.append("=" * 80)
-    report_lines.append(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    report_lines.append(f"Erstellt am: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     report_lines.append("")
     
-    # Executive Summary
-    report_lines.append("EXECUTIVE SUMMARY")
+    # Zusammenfassung
+    report_lines.append("ZUSAMMENFASSUNG")
     report_lines.append("-" * 80)
     
-    # Get data range
+    # Datenbereich
     years = sorted(df['year'].unique())
-    report_lines.append(f"Analysis Period: {years[0]} - {years[-1]}")
+    report_lines.append(f"Analysezeitraum: {years[0]} - {years[-1]}")
     report_lines.append("")
     
-    # Latest inflation rates
+    # Aktuelle Inflationsraten
     for country in stats.keys():
         latest_rate = stats[country]['latest']
         latest_date = stats[country]['latest_date']
-        report_lines.append(f"{country} - Latest Inflation Rate ({latest_date:%B %Y}): {latest_rate:.2f}%")
+        report_lines.append(f"{country} - Aktuelle Inflationsrate ({latest_date.strftime('%B %Y')}): {latest_rate:.2f}%")
     report_lines.append("")
     
-    # Key Statistics
-    report_lines.append("KEY STATISTICS")
+    # Statistische Kennzahlen
+    report_lines.append("STATISTISCHE KENNZAHLEN (SEIT 2020)")
     report_lines.append("-" * 80)
     
     for country in stats.keys():
         report_lines.append(f"\n{country}:")
-        report_lines.append(f"  Average Inflation:    {stats[country]['mean']:.2f}%")
-        report_lines.append(f"  Median Inflation:     {stats[country]['median']:.2f}%")
-        report_lines.append(f"  Minimum Inflation:    {stats[country]['min']:.2f}%")
-        report_lines.append(f"  Maximum Inflation:    {stats[country]['max']:.2f}%")
-        report_lines.append(f"  Standard Deviation:   {stats[country]['std']:.2f}%")
+        report_lines.append(f"  Durchschnittliche Inflation: {stats[country]['mean']:.2f}%")
+        report_lines.append(f"  Median der Inflation:      {stats[country]['median']:.2f}%")
+        report_lines.append(f"  Minimale Inflation:        {stats[country]['min']:.2f}%")
+        report_lines.append(f"  Maximale Inflation:        {stats[country]['max']:.2f}%")
+        report_lines.append(f"  Standardabweichung:        {stats[country]['std']:.2f}")
     
     report_lines.append("")
     
-    # Trends and Extremes
-    report_lines.append("TRENDS AND EXTREMES")
+    # Trends und Extremwerte
+    report_lines.append("TRENDS UND EXTREMWERTE")
     report_lines.append("-" * 80)
     
     for country in trends.keys():
         report_lines.append(f"\n{country}:")
-    report_lines.append(f"  Highest Inflation: {trends[country]['highest_rate']:.2f}% in {trends[country]['highest_date']:%B %Y}")
-    report_lines.append(f"  Lowest Inflation: {trends[country]['lowest_rate']:.2f}% in {trends[country]['lowest_date']:%B %Y}")
+        report_lines.append(f"  Höchste Inflation: {trends[country]['highest_rate']:.2f}% im {trends[country]['highest_date'].strftime('%B %Y')}")
+        report_lines.append(f"  Niedrigste Inflation: {trends[country]['lowest_rate']:.2f}% im {trends[country]['lowest_date'].strftime('%B %Y')}")
     
     report_lines.append("")
     
-    # Year-by-Year Comparison
-    report_lines.append("YEAR-BY-YEAR COMPARISON")
+    # Jährlicher Vergleich
+    report_lines.append("MONATLICHER VERGLEICH")
     report_lines.append("-" * 80)
-    report_lines.append(f"{'Year':<10} {'Österreich':<15} {'Deutschland':<15} {'Eurozone':<15} {'Difference':<15}")
+    report_lines.append(f"{'Monat':<12} {'Österreich':<15} {'Deutschland':<15} {'Eurozone':<15} {'Differenz (AT-EA)':<20}")
     report_lines.append("-" * 80)
     
-    for year in comparison.index:
-        austria_val = comparison.loc[year, 'Österreich'] if 'Österreich' in comparison.columns else 0
-        germany_val = comparison.loc[year, 'Deutschland'] if 'Deutschland' in comparison.columns else 0
-        euro_val = comparison.loc[year, 'Eurozone'] if 'Eurozone' in comparison.columns else 0
-        diff_val = comparison.loc[year, 'Difference (AT - EA)'] if 'Difference (AT - EA)' in comparison.columns else 0
+    # Letzte 12 Monate anzeigen
+    for date in comparison.index[-12:]:
+        austria_val = comparison.loc[date, 'Österreich']
+        germany_val = comparison.loc[date, 'Deutschland']
+        euro_val = comparison.loc[date, 'Eurozone']
+        diff_val = comparison.loc[date, 'Difference (AT - EA)']
         
         report_lines.append(
-            f"{year:<10} {austria_val:>8.2f}%      {germany_val:>8.2f}%      "
-            f"{euro_val:>8.2f}%      {diff_val:>8.2f}%"
+            f"{date.strftime('%Y-%m'):<12} {austria_val:>8.2f}%      "
+            f"{germany_val:>8.2f}%      {euro_val:>8.2f}%      "
+            f"{diff_val:>8.2f} PP"
         )
     
     report_lines.append("")
     
-    # Analysis Summary
-    report_lines.append("ANALYSIS SUMMARY")
+    # Analyse-Zusammenfassung
+    report_lines.append("ANALYSE-ZUSAMMENFASSUNG")
     report_lines.append("-" * 80)
     
     if 'Difference (AT - EA)' in comparison.columns:
         avg_diff = comparison['Difference (AT - EA)'].mean()
-        years_higher = comparison['Higher in Austria'].sum()
-        total_years = len(comparison)
+        months_higher = (comparison['Difference (AT - EA)'] > 0).sum()
+        total_months = len(comparison)
         
-        report_lines.append(f"Average Difference: {avg_diff:.2f} percentage points")
-        report_lines.append(f"Austria had higher inflation in {years_higher} out of {total_years} months.")
-        report_lines.append(f"That's {(years_higher/total_years*100):.1f}% of the time")
-        report_lines.append("")
+        report_lines.append(f"Durchschnittliche Differenz (Österreich - Eurozone): {avg_diff:.2f} Prozentpunkte.")
+        report_lines.append(f"Österreich hatte in {months_higher} von {total_months} Monaten ({months_higher/total_months:.1%}) eine höhere Inflation als die Eurozone.")
         
-        if avg_diff > 0:
-            report_lines.append("On average, Austria experienced higher inflation than the Euro zone.")
-        elif avg_diff < 0:
-            report_lines.append("On average, Austria experienced lower inflation than the Euro zone.")
+        if avg_diff > 0.1:
+            report_lines.append("Im Durchschnitt war die Inflation in Österreich tendenziell höher als im Euroraum.")
+        elif avg_diff < -0.1:
+            report_lines.append("Im Durchschnitt war die Inflation in Österreich tendenziell niedriger als im Euroraum.")
         else:
-            report_lines.append("On average, Austria's inflation matched the Euro zone.")
+            report_lines.append("Im Durchschnitt entsprach die Inflation in Österreich weitgehend der des Euroraums.")
     
     report_lines.append("")
     report_lines.append("=" * 80)
-    report_lines.append("END OF REPORT")
+    report_lines.append("ENDE DES BERICHTS")
     report_lines.append("=" * 80)
     
-    # Write to file
+    # In Datei schreiben
     import os
     output_path = os.path.join(output_dir, 'inflation_report.txt')
-    with open(output_path, 'w') as f:
+    with open(output_path, 'w', encoding='utf-8') as f:
         f.write('\n'.join(report_lines))
     
-    print(f"Saved text report to {output_path}")
+    print(f"Textbericht gespeichert unter: {output_path}")
     return output_path
 
 
 def print_summary(stats, trends):
     """
-    Print a brief summary to console.
+    Gibt eine kurze Zusammenfassung auf der Konsole aus.
     
     Args:
-        stats (dict): Statistics dictionary
-        trends (dict): Trends data
+        stats (dict): Wörterbuch mit Statistiken.
+        trends (dict): Daten zu Trends.
     """
     print("\n" + "=" * 80)
-    print("INFLATION ANALYSIS SUMMARY")
+    print("ZUSAMMENFASSUNG DER INFLATIONSANALYSE")
     print("=" * 80)
     
     for country in stats.keys():
         print(f"\n{country}:")
-        print(f"  Latest: {stats[country]['latest']:.2f}% ({stats[country]['latest_date']:%B %Y})")
-        print(f"  Average: {stats[country]['mean']:.2f}%")
-        print(f"  Peak: {trends[country]['highest_rate']:.2f}% ({trends[country]['highest_date']:%B %Y})")
+        print(f"  Aktuell: {stats[country]['latest']:.2f}% ({stats[country]['latest_date'].strftime('%B %Y')})")
+        print(f"  Durchschnitt (seit 2020): {stats[country]['mean']:.2f}%")
+        print(f"  Spitzenwert: {trends[country]['highest_rate']:.2f}% ({trends[country]['highest_date'].strftime('%B %Y')})")
     
     print("\n" + "=" * 80)
