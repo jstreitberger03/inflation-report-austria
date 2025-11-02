@@ -6,6 +6,7 @@ import numpy as np
 import eurostat
 from sklearn.linear_model import LinearRegression
 from datetime import timedelta
+from pandas.tseries.offsets import MonthBegin
 
 
 def fetch_inflation_data():
@@ -307,7 +308,7 @@ def forecast_inflation(df, months_ahead=12):
         pd.DataFrame: Forecast data with confidence bands
     """
     forecasts = []
-    
+
     for geo in df['geo'].unique():
         region_data = df[df['geo'] == geo].sort_values('date').copy()
         country_name = region_data['country'].iloc[0]
@@ -315,9 +316,12 @@ def forecast_inflation(df, months_ahead=12):
         # Use last 12 months for trend
         recent_data = region_data.tail(12).copy()
         
-        # Convert dates to numeric (months since first date)
+        # Convert dates to discrete month index (months since first date)
         min_date = recent_data['date'].min()
-        recent_data['months'] = (recent_data['date'] - min_date).dt.days / 30.44
+        recent_data['months'] = (
+            (recent_data['date'].dt.year - min_date.year) * 12
+            + (recent_data['date'].dt.month - min_date.month)
+        )
         
         # Simple linear regression on recent trend
         X = recent_data['months'].values.reshape(-1, 1)
@@ -330,13 +334,23 @@ def forecast_inflation(df, months_ahead=12):
         predictions = model.predict(X)
         residuals = y - predictions
         std_error = np.std(residuals)
-        
-        # Generate future dates
+
+        # Generate future dates starting from the month immediately after the last actual data
         last_date = region_data['date'].max()
-        future_dates = [last_date + timedelta(days=30.44 * i) for i in range(1, months_ahead + 1)]
+        # Calculate the first forecast month: month after last_date
+        if last_date.month == 12:
+            next_month = pd.Timestamp(year=last_date.year + 1, month=1, day=1)
+        else:
+            next_month = pd.Timestamp(year=last_date.year, month=last_date.month + 1, day=1)
         
+        # Generate sequence of months
+        future_dates = pd.date_range(start=next_month, periods=months_ahead, freq='MS').tolist()
+
         # Predict future values
-        future_months = np.array([(date - min_date).days / 30.44 for date in future_dates]).reshape(-1, 1)
+        future_months = np.array([
+            (d.year - min_date.year) * 12 + (d.month - min_date.month)
+            for d in future_dates
+        ]).reshape(-1, 1)
         future_values = model.predict(future_months)
         
         # Add confidence bands (95% confidence = ~1.96 * std_error)

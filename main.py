@@ -28,6 +28,7 @@ from visualization import (
     plot_ecb_interest_rates
 )
 from report_generator import generate_text_report, print_summary
+from html_report_generator import generate_html_report
 
 
 def main():
@@ -84,9 +85,10 @@ def main():
     plot_eu_heatmap(output_dir)  # EU-wide heatmap
     print()
     
-    # Step 7: Generate text report
-    print("[7/8] Generating text report...")
+    # Step 7: Generate reports
+    print("[7/8] Generating reports...")
     generate_text_report(df, stats, comparison, trends, output_dir)
+    generate_html_report(df, stats, comparison, trends, forecast_df, output_dir)
     print()
     
     # Step 8: Print summary

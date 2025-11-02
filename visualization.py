@@ -30,20 +30,41 @@ def plot_inflation_comparison(df, output_dir='output'):
     import numpy as np
     from data_fetcher import forecast_inflation
     
-    # Set German locale for month names
+    # Set German locale for month names - use UTF-8
     try:
         locale.setlocale(locale.LC_TIME, 'de_DE.UTF-8')
     except:
         try:
             locale.setlocale(locale.LC_TIME, 'German_Germany.1252')
         except:
-            pass
+            try:
+                locale.setlocale(locale.LC_TIME, 'deu_deu')
+            except:
+                pass  # Fall back to default if German locale not available
     
     # Filter to 2020 onwards for this plot
     df = df[df['date'] >= '2020-01-01'].copy()
     
-    # Generate 6-month forecast
+    # Generate 6-month forecast for all countries, but only show until March 2026
     forecast_df = forecast_inflation(df, months_ahead=6)
+    forecast_df = forecast_df[forecast_df['date'] <= '2026-03-31'].copy()
+    
+    # Create connection points: add last historical point to forecast data to ensure continuity
+    connection_points = []
+    for country in df['country'].unique():
+        last_hist = df[df['country'] == country].sort_values('date').iloc[-1]
+        connection_points.append({
+            'date': last_hist['date'],
+            'geo': last_hist['geo'],
+            'country': last_hist['country'],
+            'inflation_rate': last_hist['inflation_rate'],
+            'lower_bound': last_hist['inflation_rate'],
+            'upper_bound': last_hist['inflation_rate'],
+            'type': 'Prognose',
+            'is_forecast': False
+        })
+    
+    connection_df = pd.DataFrame(connection_points)
     
     # Combine historical and forecast
     df_hist = df.copy()
@@ -53,19 +74,42 @@ def plot_inflation_comparison(df, output_dir='output'):
     
     forecast_df['type'] = 'Prognose'
     
-    df_combined = pd.concat([df_hist, forecast_df], ignore_index=True)
+    # Ensure country column exists in forecast_df for all countries
+    if 'country' not in forecast_df.columns and 'geo' in forecast_df.columns:
+        forecast_df['country'] = forecast_df['geo'].map({
+            'AT': 'Österreich',
+            'DE': 'Deutschland', 
+            'EA': 'Eurozone'
+        })
+    
+    df_combined = pd.concat([df_hist, connection_df, forecast_df], ignore_index=True)
+    
+    # Remove any rows with missing country
+    df_combined = df_combined.dropna(subset=['country'])
+    
+    # Define key events
+    events = pd.DataFrame({
+        'date': pd.to_datetime(['2020-03-11', '2022-02-24', '2025-01-20']),
+        'label': ['COVID-19', 'Ukraine-Krieg', 'Liberation Day'],
+        'y_pos': [2, 9, 5]
+    })
     
     # Calculate y-axis limits with 1.0 increments
     y_min = np.floor(df_combined['lower_bound'].min())
     y_max = np.ceil(df_combined['upper_bound'].max())
     y_breaks = np.arange(y_min, y_max + 1, 1.0)
     
-    plot = (ggplot(df_combined, aes(x='date', y='inflation_rate', color='country', group='country'))
+    plot = (ggplot(df_combined, aes(x='date', y='inflation_rate', color='country'))
             + geom_line(aes(linetype='type'), size=1.3, alpha=0.9)
             + geom_point(size=1.8, alpha=0.6, data=df_combined[df_combined['type'] == 'Historisch'])
             + geom_ribbon(aes(ymin='lower_bound', ymax='upper_bound', fill='country'),
                          data=df_combined[df_combined['type'] == 'Prognose'], 
                          alpha=0.12, show_legend=False)
+            + geom_vline(data=events, mapping=aes(xintercept='date'), 
+                        linetype='dashed', alpha=0.4, color='#333333')
+            + geom_text(data=events, mapping=aes(x='date', y='y_pos', label='label'),
+                       angle=90, va='bottom', ha='right', size=9, color='#333333',
+                       nudge_y=0.3)
             + scale_color_manual(values=['#2E86AB', '#A23B72', '#F18F01'], 
                                 labels=['Österreich', 'Deutschland', 'Eurozone'])
             + scale_fill_manual(values=['#2E86AB', '#A23B72', '#F18F01'])
@@ -74,12 +118,12 @@ def plot_inflation_comparison(df, output_dir='output'):
             + scale_x_datetime(date_labels='%b %Y', date_breaks='3 months')
             + scale_y_continuous(limits=[y_min, y_max], breaks=y_breaks)
             + theme_minimal()
-            + labs(title='Inflationsrate im Vergleich (mit 6-Monats-Prognose)',
+            + labs(title='Inflationsrate im Vergleich (mit Prognose bis März 2026)',
                   x='',
                   y='Inflationsrate (%)',
                   color='Region',
                   linetype='',
-                  caption='Quelle: Eurostat (2025). HICP - monatliche Änderungsrate zum Vorjahresmonat. Schattierter Bereich: 95%-Konfidenzintervall.')
+                  caption='Quelle: Eurostat (2025). HCPI - Harmonisierter Verbraucherpreisindex. Schattierung: 95%-Konfidenzintervall. Kritische Ereignisse markiert.')
             + theme(
                 plot_title=element_text(size=14, face="bold", margin={'b': 15}),
                 plot_caption=element_text(size=9, hjust=0, margin={'t': 12}, color='#666666'),
@@ -100,8 +144,8 @@ def plot_inflation_comparison(df, output_dir='output'):
                 plot_background=element_rect(fill='#FAFAFA')
             ))
     
-    output_path = os.path.join(output_dir, 'inflation_comparison.png')
-    plot.save(output_path, dpi=300)
+    output_path = os.path.join(output_dir, 'inflation_comparison.svg')
+    plot.save(output_path, dpi=300, format='svg')
     
     print(f"Saved plot to {output_path}")
     return output_path
@@ -122,6 +166,12 @@ def plot_difference(comparison_df, output_dir='output'):
         print("No difference column found in comparison data")
         return None
     
+    # Filter to 2020 onwards (check if index is datetime or year)
+    if hasattr(comparison_df.index, 'year'):
+        comparison_df = comparison_df[comparison_df.index.year >= 2020].copy()
+    else:
+        comparison_df = comparison_df[comparison_df.index >= 2020].copy()
+    
     # Reset index to make date a column for plotnine
     plot_df = comparison_df.reset_index()
     
@@ -134,11 +184,11 @@ def plot_difference(comparison_df, output_dir='output'):
             + scale_fill_identity()
             + scale_x_datetime(date_labels='%B %Y', date_breaks='6 months')
             + theme_minimal()
-            + labs(title='Inflationsdifferenz: Österreich zur Eurozone',
+            + labs(title='Inflationsdifferenz: Österreich zur Eurozone (seit 2020)',
                   subtitle='Positive Werte = Höhere Inflation in Österreich',
                   x='',
                   y='Differenz (Prozentpunkte)',
-                  caption='Quelle: Eurostat (2025). Eigene Berechnung.')
+                  caption='Quelle: Eurostat (2025). HCPI - Harmonisierter Verbraucherpreisindex.')
             + theme(
                 plot_title=element_text(size=13, face="bold", margin={'b': 5}),
                 plot_subtitle=element_text(size=10, margin={'b': 10}),
@@ -149,15 +199,15 @@ def plot_difference(comparison_df, output_dir='output'):
                 axis_text_x=element_text(angle=45, hjust=1),
                 panel_grid_minor_x=element_blank(),
                 panel_grid_major_x=element_blank(),
-                panel_grid_minor_y=element_line(alpha=0.15, linetype='dotted', size=0.3),
-                panel_grid_major_y=element_line(alpha=0.3, linetype='dotted', size=0.5),
+                panel_grid_minor_y=element_line(alpha=0.25, linetype='dotted', size=0.5, color='#CCCCCC'),
+                panel_grid_major_y=element_line(alpha=0.5, linetype='dotted', size=0.8, color='#999999'),
                 figure_size=(12, 6),
                 panel_background=element_rect(fill='white'),
                 plot_background=element_rect(fill='white')
             ))
     
-    output_path = os.path.join(output_dir, 'inflation_difference.png')
-    plot.save(output_path, dpi=300)
+    output_path = os.path.join(output_dir, 'inflation_difference.svg')
+    plot.save(output_path, dpi=300, format='svg')
     
     print(f"Saved plot to {output_path}")
     return output_path
@@ -207,8 +257,8 @@ def plot_statistics_comparison(stats, output_dir='output'):
             + theme_minimal()
             + labs(title='Deskriptive Statistik der Inflationsraten (seit 2020)',
                   x='',
-                  y='Rate (%)',
-                  caption='Quelle: Eurostat (2025). Eigene Berechnung.')
+                  y='Inflationsrate (%)',
+                  caption='Quelle: Eurostat (2025). HCPI - Harmonisierter Verbraucherpreisindex.')
             + theme(
                 plot_title=element_text(size=13, face="bold", margin={'b': 10}),
                 plot_caption=element_text(size=8, hjust=0, margin={'t': 10}),
@@ -217,15 +267,15 @@ def plot_statistics_comparison(stats, output_dir='output'):
                 axis_text=element_text(size=9),
                 panel_grid_minor_x=element_blank(),
                 panel_grid_major_x=element_blank(),
-                panel_grid_minor_y=element_line(alpha=0.15, linetype='dotted', size=0.3),
-                panel_grid_major_y=element_line(alpha=0.3, linetype='dotted', size=0.5),
+                panel_grid_minor_y=element_line(alpha=0.25, linetype='dotted', size=0.5, color='#CCCCCC'),
+                panel_grid_major_y=element_line(alpha=0.5, linetype='dotted', size=0.8, color='#999999'),
                 figure_size=(12, 9),
                 panel_background=element_rect(fill='white'),
                 plot_background=element_rect(fill='white')
             ))
     
-    output_path = os.path.join(output_dir, 'statistics_comparison.png')
-    plot.save(output_path, dpi=300)
+    output_path = os.path.join(output_dir, 'statistics_comparison.svg')
+    plot.save(output_path, dpi=300, format='svg')
     
     print(f"Saved plot to {output_path}")
     return output_path
@@ -270,7 +320,8 @@ def plot_ecb_interest_rates(interest_df, output_dir='output'):
         y_breaks = np.arange(y_min, y_max + 1, 1.0)
         
         plot = (ggplot(interest_df, aes(x='date', y='interest_rate', color='rate_type'))
-                + geom_line(size=1.4, alpha=0.9)
+                + geom_line(size=1.5, alpha=0.9)
+                + geom_point(size=1.2, alpha=0.4)
                 + scale_color_manual(values=['#2C3E50', '#E74C3C'],
                                     labels=['Hauptrefinanzierungssatz', 'Einlagenfazilität'])
                 + scale_x_datetime(date_labels='%Y', date_breaks='3 years')
@@ -279,8 +330,8 @@ def plot_ecb_interest_rates(interest_df, output_dir='output'):
                 + labs(title='EZB-Leitzinsen seit 2000',
                       x='',
                       y='Zinssatz (%)',
-                      color='Zinstyp',
-                      caption='Quelle: EZB (2025). Hauptrefinanzierungssatz und Einlagenfazilität der Europäischen Zentralbank.')
+                      color='',
+                      caption='Quelle: Europäische Zentralbank (2025).')
                 + theme(
                     plot_title=element_text(size=14, face="bold", margin={'b': 15}),
                     plot_caption=element_text(size=9, hjust=0, margin={'t': 12}, color='#666666'),
@@ -305,14 +356,15 @@ def plot_ecb_interest_rates(interest_df, output_dir='output'):
         
         plot = (ggplot(interest_df, aes(x='date', y='interest_rate'))
                 + geom_line(color='#2C3E50', size=1.5, alpha=0.9)
-                + geom_area(fill='#34495E', alpha=0.15)
+                + geom_point(color='#2C3E50', size=1.2, alpha=0.4)
+                + geom_area(fill='#34495E', alpha=0.12)
                 + scale_x_datetime(date_labels='%Y', date_breaks='3 years')
                 + scale_y_continuous(breaks=y_breaks)
                 + theme_minimal()
                 + labs(title='EZB-Hauptrefinanzierungssatz seit 2000',
                       x='',
                       y='Leitzins (%)',
-                      caption='Quelle: EZB (2025). Hauptrefinanzierungssatz der Europäischen Zentralbank.')
+                      caption='Quelle: Europäische Zentralbank (2025).')
                 + theme(
                     plot_title=element_text(size=14, face="bold", margin={'b': 15}),
                     plot_caption=element_text(size=9, hjust=0, margin={'t': 12}, color='#666666'),
@@ -330,8 +382,8 @@ def plot_ecb_interest_rates(interest_df, output_dir='output'):
                     plot_background=element_rect(fill='#FAFAFA')
                 ))
     
-    output_path = os.path.join(output_dir, 'ecb_interest_rates.png')
-    plot.save(output_path, dpi=300)
+    output_path = os.path.join(output_dir, 'ecb_interest_rates.svg')
+    plot.save(output_path, dpi=300, format='svg')
     
     print(f"Saved interest rate plot to {output_path}")
     return output_path
@@ -393,15 +445,34 @@ def plot_eu_heatmap(output_dir='output'):
         top_countries = country_counts.head(15).index.tolist()
         df_long = df_long[df_long['geo'].isin(top_countries)]
         
+        # Map country codes to names
+        country_names = {
+            'AT': 'Österreich', 'DE': 'Deutschland', 'FR': 'Frankreich', 'IT': 'Italien',
+            'ES': 'Spanien', 'NL': 'Niederlande', 'BE': 'Belgien', 'PL': 'Polen',
+            'SE': 'Schweden', 'CZ': 'Tschechien', 'PT': 'Portugal', 'RO': 'Rumänien',
+            'GR': 'Griechenland', 'HU': 'Ungarn', 'DK': 'Dänemark', 'FI': 'Finnland',
+            'SK': 'Slowakei', 'IE': 'Irland', 'HR': 'Kroatien', 'BG': 'Bulgarien',
+            'LT': 'Litauen', 'SI': 'Slowenien', 'LV': 'Lettland', 'EE': 'Estland',
+            'CY': 'Zypern', 'LU': 'Luxemburg', 'MT': 'Malta',
+            'EA19': 'Eurozone (19)', 'EA20': 'Eurozone (20)'
+        }
+        df_long['country_name'] = df_long['geo'].map(country_names).fillna(df_long['geo'])
+        
         # Create year-month column for better grouping
         df_long['year_month'] = df_long['date'].dt.to_period('M').astype(str)
         
         # Aggregate to quarterly data to make heatmap more readable
         df_long['quarter'] = df_long['date'].dt.to_period('Q')
-        df_quarterly = df_long.groupby(['geo', 'quarter'])['inflation_rate'].mean().reset_index()
+        df_quarterly = df_long.groupby(['country_name', 'quarter'])['inflation_rate'].mean().reset_index()
         df_quarterly['quarter_str'] = df_quarterly['quarter'].astype(str)
         
-        plot = (ggplot(df_quarterly, aes(x='quarter_str', y='geo', fill='inflation_rate'))
+        # Sort by average inflation rate
+        avg_inflation = df_quarterly.groupby('country_name')['inflation_rate'].mean().sort_values()
+        df_quarterly['country_name'] = pd.Categorical(df_quarterly['country_name'], 
+                                                       categories=avg_inflation.index, 
+                                                       ordered=True)
+        
+        plot = (ggplot(df_quarterly, aes(x='quarter_str', y='country_name', fill='inflation_rate'))
                 + geom_tile(color='white', size=0.5)
                 + scale_fill_gradient2(low='#3498db', mid='#f1c40f', high='#e74c3c', 
                                        midpoint=4, limits=[df_quarterly['inflation_rate'].min(), 
@@ -411,7 +482,7 @@ def plot_eu_heatmap(output_dir='output'):
                       x='Quartal',
                       y='Land',
                       fill='Inflation (%)',
-                      caption='Quelle: Eurostat (2025). HICP - Harmonisierter Verbraucherpreisindex.')
+                      caption='Quelle: Eurostat (2025). HCPI - Harmonisierter Verbraucherpreisindex.')
                 + theme(
                     plot_title=element_text(size=12, face="bold", margin={'b': 10}),
                     plot_caption=element_text(size=8, hjust=0, margin={'t': 10}),
@@ -426,8 +497,8 @@ def plot_eu_heatmap(output_dir='output'):
                     plot_background=element_rect(fill='white')
                 ))
         
-        output_path = os.path.join(output_dir, 'eu_inflation_heatmap.png')
-        plot.save(output_path, dpi=300)
+        output_path = os.path.join(output_dir, 'eu_inflation_heatmap.svg')
+        plot.save(output_path, dpi=300, format='svg')
         
         print(f"Saved heatmap to {output_path}")
         return output_path
@@ -535,7 +606,7 @@ def plot_historical_comparison(output_dir='output'):
                       x='',
                       y='Inflationsrate (%)',
                       color='Region',
-                      caption='Quelle: Eurostat (2025). Markierte kritische Ereignisse: Finanzkrise 2008, COVID-19 Pandemie, Ukraine-Krieg.')
+                      caption='Quelle: Eurostat (2025). HCPI - Harmonisierter Verbraucherpreisindex. Kritische Ereignisse: Finanzkrise 2008, COVID-19, Ukraine-Krieg.')
                 + theme(
                     plot_title=element_text(size=14, face="bold", margin={'b': 15}),
                     plot_caption=element_text(size=9, hjust=0, margin={'t': 12}, color='#666666'),
@@ -556,8 +627,8 @@ def plot_historical_comparison(output_dir='output'):
                     plot_background=element_rect(fill='#FAFAFA')
                 ))
         
-        output_path = os.path.join(output_dir, 'historical_comparison.png')
-        plot.save(output_path, dpi=300)
+        output_path = os.path.join(output_dir, 'historical_comparison.svg')
+        plot.save(output_path, dpi=300, format='svg')
         
         print(f"Saved plot to {output_path}")
         return output_path

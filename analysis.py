@@ -14,10 +14,13 @@ def calculate_statistics(df):
     Returns:
         dict: Dictionary containing statistics for each region
     """
+    # Filter to 2020 onwards for statistics
+    df_filtered = df[df['date'] >= '2020-01-01'].copy()
+    
     stats = {}
     
-    for geo in df['geo'].unique():
-        region_data = df[df['geo'] == geo]
+    for geo in df_filtered['geo'].unique():
+        region_data = df_filtered[df_filtered['geo'] == geo]
         country_name = region_data['country'].iloc[0]
         
         stats[country_name] = {
