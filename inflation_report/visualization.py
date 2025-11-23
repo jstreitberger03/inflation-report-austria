@@ -442,7 +442,7 @@ def plot_historical_comparison(config: ReportConfig, output_dir: str | Path = "o
 
         set_labels(f"Langfristige Inflationsentwicklung (seit {pd.to_datetime(config.historical_start_date).year})", "", "Inflationsrate (%)", ax=ax)
         ax.legend(loc="upper right")
-        _style_time_axis(ax, interval=6, fmt="%Y", rotation=0)
+        _style_time_axis(ax, interval=60, fmt="%Y", rotation=0)
         y_min, y_max = df_long["inflation_rate"].min(), df_long["inflation_rate"].max()
         margin = max(0.5, (y_max - y_min) * 0.08)
         set_limits(ylim=(np.floor(y_min - margin), np.ceil(y_max + margin)), ax=ax)
