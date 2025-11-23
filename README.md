@@ -45,7 +45,7 @@ Das Tool generiert die folgenden SVG-Diagramme:
 - Separate Makefile-Targets zum Erzeugen (`make figures`) und Aufräumen (`make clean`) der Ausgaben
 
 ### Vorschau (Beispiele)
-> Hinweis: Die SVGs werden bei der Ausführung neu erzeugt. Diese Beispiele zeigen typische Ergebnisse.
+> Hinweis: Aktualisiere die Vorschaubilder mit `make previews` (ruft `make figures` auf und kopiert die SVGs nach `docs/previews/`).
 
 | Plot | Vorschau |
 | --- | --- |
